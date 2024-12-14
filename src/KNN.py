@@ -36,3 +36,59 @@ class KNN:
         unique, counts = np.unique(labels, return_counts=True)
         most_common = unique[np.argmax(counts)]
         return most_common
+    
+from scipy.spatial.distance import cdist
+from scipy.stats import mode
+
+class OptimizedKNN:
+    def __init__(self, k: int = 3, distance_metric: str = 'euclidean'):
+        """
+        Initialize KNN with more flexible distance metric options.
+        
+        Parameters:
+        -----------
+        k : int, optional (default=3)
+            Number of nearest neighbors to consider
+        distance_metric : str, optional (default='euclidean')
+            Distance metric to use for neighbor calculation
+        """
+        self.k = k
+        self.distance_metric = distance_metric
+    
+    def fit(self, X_train: pd.DataFrame, y_train: pd.Series) -> None:
+        """
+        Store training data.
+        
+        Parameters:
+        -----------
+        X_train : pd.DataFrame
+            Feature matrix for training
+        y_train : pd.Series
+            Target labels for training
+        """
+        self.X_train = X_train.values
+        self.y_train = y_train.values
+    
+    def predict(self, X_test: pd.DataFrame) -> np.ndarray:
+        """
+        Vectorized prediction for multiple test points.
+        
+        Parameters:
+        -----------
+        X_test : pd.DataFrame
+            Feature matrix for testing
+        
+        Returns:
+        --------
+        np.ndarray
+            Predicted labels for test points
+        """
+        distances = cdist(X_test.values, self.X_train, metric=self.distance_metric)
+        
+        k_indices = distances.argsort(axis=1)[:, :self.k]
+        
+        k_nearest_labels = self.y_train[k_indices]
+        
+        predictions = mode(k_nearest_labels, axis=1).mode.flatten()
+        
+        return predictions

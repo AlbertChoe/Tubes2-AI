@@ -1,5 +1,5 @@
 import pandas as pd
-from KNN import KNN
+from KNN import KNN, OptimizedKNN
 from NaiveBayes import NaiveBayes
 from ID3 import ID3
 from ModelLoader import ModelLoader
@@ -36,6 +36,16 @@ def test_knn():
     
     predictions = loaded_knn.predict(X_test)
     print(f"KNN Predictions: {predictions}")
+    
+def test_oknn():
+    oknn = OptimizedKNN(k=5)
+    
+    oknn.fit(X_train, y_train)
+    ModelLoader.save(oknn, 'oknn_model.pkl')
+    loaded_knn = ModelLoader.load('oknn_model.pkl')
+    
+    predictions = loaded_knn.predict(X_test)
+    print(f"OptimizedKNN Predictions: {predictions}")
 
 
 def test_naive_bayes():
@@ -63,6 +73,8 @@ def test_id3():
 if __name__ == '__main__':
     print("Testing KNN Model...")
     test_knn()
+    print("Testing Optimized KNN Model...")
+    test_oknn()
     print("\nTesting Naive Bayes Model...")
     test_naive_bayes()
     print("\nTesting ID3 Model...")
