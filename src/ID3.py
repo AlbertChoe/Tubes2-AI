@@ -52,6 +52,10 @@ class ID3:
         if len(set(y)) == 1:
             return Node(results=y[0])
 
+        if len(X) == 0:
+            majority_class = np.bincount(y).argmax()
+            return Node(results=majority_class)
+
         best_gain = 0
         best_criteria = None
         best_sets = None
@@ -63,6 +67,9 @@ class ID3:
             feature_values = set(X[:, feature]) if not isinstance(X[0, feature], (int, float)) else set(np.unique(X[:, feature]))
             for value in feature_values:
                 true_X, true_y, false_X, false_y = self._split_data(X, y, feature, value)
+
+                if len(true_X) == 0 or len(false_X) == 0:
+                    continue
 
                 true_entropy = self._entropy(true_y)
                 false_entropy = self._entropy(false_y)
@@ -79,8 +86,9 @@ class ID3:
             false_branch = self._build_tree(best_sets[2], best_sets[3])
             return Node(feature=best_criteria[0], value=best_criteria[1], true_branch=true_branch, false_branch=false_branch)
 
-        return Node(results=y[0])
-
+        majority_class = np.bincount(y).argmax()
+        return Node(results=majority_class)
+    
     def fit(self, X, y):
         """
         Fit the decision tree to the training data.

@@ -50,7 +50,6 @@ def test_oknn():
     print(f"OptimizedKNN Predictions: {predictions}")
 
 def test_sklearn_knn():
-    # Using sklearn's KNeighborsClassifier
     sklearn_knn = KNeighborsClassifier(n_neighbors=5)
     sklearn_knn.fit(X_train, y_train)
     
@@ -68,7 +67,6 @@ def test_naive_bayes():
     print(f"Naive Bayes Predictions: {predictions}")
 
 def test_sklearn_naive_bayes():
-    # Using sklearn's GaussianNB
     sklearn_nb = GaussianNB()
     sklearn_nb.fit(X_train, y_train)
     
