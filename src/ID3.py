@@ -1,4 +1,5 @@
 import numpy as np
+from collections import Counter
 
 class Node:
     def __init__(self, feature=None, value=None, results=None, true_branch=None, false_branch=None):
@@ -13,8 +14,16 @@ class ID3:
         self.root = None
 
     def _entropy(self, y):
-        counts = np.bincount(y) if isinstance(y[0], int) else {label: list(y).count(label) for label in set(y)}
-        probabilities = [count / len(y) for count in counts.values()] if not isinstance(y[0], int) else counts / len(y)
+        """
+        Calculate entropy for the given labels.
+        If y contains categorical values (e.g., strings), use Counter to handle it.
+        """
+        if isinstance(y[0], (int, float)):
+            counts = np.bincount(y)
+        else:
+            counts = Counter(y)
+        
+        probabilities = [count / len(y) for count in counts.values()]
         return -np.sum([p * np.log2(p) for p in probabilities if p > 0])
 
     def _split_data(self, X, y, feature, value):
@@ -68,7 +77,7 @@ class ID3:
         best_gain, best_criteria, best_sets = self._best_split(X, y)
 
         if best_gain == 0:
-            majority_class = np.bincount(y).argmax()
+            majority_class = Counter(y).most_common(1)[0][0]
             return Node(results=majority_class)
 
         true_branch = self._build_tree(best_sets[0], best_sets[1])
