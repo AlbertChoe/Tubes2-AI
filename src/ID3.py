@@ -1,76 +1,109 @@
 import numpy as np
-import pandas as pd
-from typing import Any, Dict
+
+class Node:
+    def __init__(self, feature=None, value=None, results=None, true_branch=None, false_branch=None):
+        """
+        Represents a single node in the decision tree.
+        """
+        self.feature = feature
+        self.value = value
+        self.results = results
+        self.true_branch = true_branch
+        self.false_branch = false_branch
 
 class ID3:
     def __init__(self):
-        self.tree: Dict[Any, Any] = None
+        self.root = None
 
-    def fit(self, X_train: pd.DataFrame, y_train: pd.Series) -> None:
-        self.tree = self._id3(X_train, y_train, list(X_train.columns))
+    def _entropy(self, y):
+        """
+        Calculate entropy for the given labels.
+        """
+        counts = np.bincount(y) if isinstance(y[0], int) else {label: list(y).count(label) for label in set(y)}
+        probabilities = [count / len(y) for count in counts.values()] if not isinstance(y[0], int) else counts / len(y)
+        return -np.sum([p * np.log2(p) for p in probabilities if p > 0])
 
-    def predict(self, X_test: pd.DataFrame) -> list:
-        return [self._predict(x) for _, x in X_test.iterrows()]
+    def _split_data(self, X, y, feature, value):
+        """
+        Split the dataset based on the feature and its value.
+        Handles both continuous and categorical features.
+        """
+        X = X.to_numpy() if hasattr(X, "to_numpy") else X
+        y = y.to_numpy() if hasattr(y, "to_numpy") else y
 
-    def _id3(self, X: pd.DataFrame, y: pd.Series, features: list) -> Any:
+        if isinstance(value, (int, float)):  # Continuous feature
+            true_indices = np.where(X[:, feature] <= value)[0]
+            false_indices = np.where(X[:, feature] > value)[0]
+        else:  # Categorical feature
+            true_indices = np.where(X[:, feature] == value)[0]
+            false_indices = np.where(X[:, feature] != value)[0]
+
+        true_X, true_y = X[true_indices], y[true_indices]
+        false_X, false_y = X[false_indices], y[false_indices]
+        return true_X, true_y, false_X, false_y
+
+    def _build_tree(self, X, y):
+        """
+        Build the decision tree recursively.
+        """
+        X = X.to_numpy() if hasattr(X, "to_numpy") else X
+        y = y.to_numpy() if hasattr(y, "to_numpy") else y
+
+        # If all labels are the same, return a leaf node
         if len(set(y)) == 1:
-            return y.iloc[0]
-        if len(features) == 0:
-            return self._most_common_label(y)
-        
-        best_feature = self._best_feature(X, y, features)
-        tree: Dict[Any, Any] = {best_feature: {}}
-        
-        feature_values = set(X[best_feature])
-        for value in feature_values:
-            subset_X = X[X[best_feature] == value]
-            subset_y = y[X[best_feature] == value]
-            subset_features = [f for f in features if f != best_feature]
-            tree[best_feature][value] = self._id3(subset_X, subset_y, subset_features)
-        
-        return tree
+            return Node(results=y[0])
 
-    def _best_feature(self, X: pd.DataFrame, y: pd.Series, features: list) -> str:
-        best_gain = -float('inf')
-        best_feature: str = None
-        
-        for feature in features:
-            gain = self._information_gain(X, y, feature)
-            if gain > best_gain:
-                best_gain = gain
-                best_feature = feature
-        
-        return best_feature
+        best_gain = 0
+        best_criteria = None
+        best_sets = None
+        n_features = X.shape[1]
 
-    def _information_gain(self, X: pd.DataFrame, y: pd.Series, feature: str) -> float:
-        entropy_before = self._entropy(y)
-        feature_values = set(X[feature])
-        subsets = [y[X[feature] == value] for value in feature_values]
-        
-        entropy_after = sum((len(subset) / len(y)) * self._entropy(subset) for subset in subsets)
-        
-        return entropy_before - entropy_after
+        current_entropy = self._entropy(y)
 
-    def _entropy(self, y: pd.Series) -> float:
-        n = len(y)
-        value_counts = y.value_counts()
-        entropy = 0
-        
-        for count in value_counts:
-            probability = count / n
-            entropy -= probability * np.log2(probability) if probability > 0 else 0
-        
-        return entropy
+        # Iterate over all features and their unique values to find the best split
+        for feature in range(n_features):
+            feature_values = set(X[:, feature]) if not isinstance(X[0, feature], (int, float)) else set(np.unique(X[:, feature]))
+            for value in feature_values:
+                true_X, true_y, false_X, false_y = self._split_data(X, y, feature, value)
 
-    def _most_common_label(self, y: pd.Series) -> Any:
-        return y.mode().iloc[0]
+                true_entropy = self._entropy(true_y)
+                false_entropy = self._entropy(false_y)
+                p = len(true_y) / len(y)
+                gain = current_entropy - p * true_entropy - (1 - p) * false_entropy
+                
+                if gain > best_gain:
+                    best_gain = gain
+                    best_criteria = (feature, value)
+                    best_sets = (true_X, true_y, false_X, false_y)
 
-    def _predict(self, x: pd.Series) -> Any:
-        tree = self.tree
-        while isinstance(tree, dict):
-            feature = list(tree.keys())[0]
-            value = x[feature]
-            tree = tree[feature].get(value, None)
-            if tree is None:
-                return None
-        return tree
+        if best_gain > 0:
+            true_branch = self._build_tree(best_sets[0], best_sets[1])
+            false_branch = self._build_tree(best_sets[2], best_sets[3])
+            return Node(feature=best_criteria[0], value=best_criteria[1], true_branch=true_branch, false_branch=false_branch)
+
+        return Node(results=y[0])
+
+    def fit(self, X, y):
+        """
+        Fit the decision tree to the training data.
+        """
+        self.root = self._build_tree(X, y)
+
+    def predict_sample(self, node, sample):
+        """
+        Predict the label for a single sample.
+        """
+        if node.results is not None:
+            return node.results
+        else:
+            branch = node.false_branch
+            if sample[node.feature] <= node.value if isinstance(node.value, (int, float)) else sample[node.feature] == node.value:
+                branch = node.true_branch
+            return self.predict_sample(branch, sample)
+
+    def predict(self, X):
+        """
+        Predict the labels for multiple samples.
+        """
+        X = X.to_numpy() if hasattr(X, "to_numpy") else X
+        return np.array([self.predict_sample(self.root, sample) for sample in X])

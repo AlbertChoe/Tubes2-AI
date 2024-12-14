@@ -1,5 +1,7 @@
 import pandas as pd
-from KNN import KNN, MemoryEfficientKNN, OptimizedKNN, OptimizedKNN2
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import GaussianNB
+from KNN import KNN, OptimizedKNN
 from NaiveBayes import NaiveBayes
 from ID3 import ID3
 from ModelLoader import ModelLoader
@@ -12,7 +14,7 @@ def generate_data():
         'Feature4': [5, 15, 25, 35, 45],
     })
 
-    y_train = pd.Series([1, 0, 1, 0, 1])
+    y_train = pd.Series(["type 1", "type 0", "type 1", "type 0", "type 1"])
     
     X_test = pd.DataFrame({
         'Feature1': [15, 25, 35],
@@ -36,26 +38,24 @@ def test_knn():
     
     predictions = loaded_knn.predict(X_test)
     print(f"KNN Predictions: {predictions}")
-    
+
 def test_oknn():
-    oknn = OptimizedKNN2(k=5)
+    oknn = OptimizedKNN(k=5)
     
     oknn.fit(X_train, y_train)
     ModelLoader.save(oknn, 'oknn_model.pkl')
-    loaded_knn = ModelLoader.load('oknn_model.pkl')
+    loaded_oknn = ModelLoader.load('oknn_model.pkl')
     
-    predictions = loaded_knn.predict(X_test)
+    predictions = loaded_oknn.predict(X_test)
     print(f"OptimizedKNN Predictions: {predictions}")
 
-def test_meknn():
-    meknn = MemoryEfficientKNN(k=5)
+def test_sklearn_knn():
+    # Using sklearn's KNeighborsClassifier
+    sklearn_knn = KNeighborsClassifier(n_neighbors=5)
+    sklearn_knn.fit(X_train, y_train)
     
-    meknn.fit(X_train, y_train)
-    ModelLoader.save(meknn, 'meknn_model.pkl')
-    loaded_knn = ModelLoader.load('meknn_model.pkl')
-    
-    predictions = loaded_knn.predict(X_test)
-    print(f"MemoryEfficientKNN Predictions: {predictions}")
+    predictions = sklearn_knn.predict(X_test)
+    print(f"Sklearn KNN Predictions: {predictions}")
 
 def test_naive_bayes():
     nb = NaiveBayes()
@@ -67,6 +67,13 @@ def test_naive_bayes():
     predictions = loaded_nb.predict(X_test)
     print(f"Naive Bayes Predictions: {predictions}")
 
+def test_sklearn_naive_bayes():
+    # Using sklearn's GaussianNB
+    sklearn_nb = GaussianNB()
+    sklearn_nb.fit(X_train, y_train)
+    
+    predictions = sklearn_nb.predict(X_test)
+    print(f"Sklearn Naive Bayes Predictions: {predictions}")
 
 def test_id3():
     id3 = ID3()
@@ -77,16 +84,39 @@ def test_id3():
     
     predictions = loaded_id3.predict(X_test)
     print(f"ID3 Predictions: {predictions}")
+    
+from sklearn.tree import DecisionTreeClassifier
 
+def test_sklearn_decision_tree_entropy():
+    sklearn_dt = DecisionTreeClassifier(criterion='entropy')
+    sklearn_dt.fit(X_train, y_train)
+    
+    predictions = sklearn_dt.predict(X_test)
+    print(f"Sklearn Decision Tree (Entropy) Predictions: {predictions}")
+    
+
+def printSeparator():
+    print()
+    print("=" * 60)
+    print()
 
 if __name__ == '__main__':
+    printSeparator()
     print("Testing KNN Model...")
     test_knn()
     print("\nTesting Optimized KNN Model...")
     test_oknn()
-    print("\nTesting Memory Efficient KNN Model...")
-    test_meknn()
+    print("\nTesting Sklearn KNN Model...")
+    test_sklearn_knn()
+    
+    printSeparator()
     print("\nTesting Naive Bayes Model...")
     test_naive_bayes()
+    print("\nTesting Sklearn Naive Bayes Model...")
+    test_sklearn_naive_bayes()
+    
+    printSeparator()
     print("\nTesting ID3 Model...")
     test_id3()
+    print("\nTesting Sklearn Decision Tree (Entropy)...")
+    test_sklearn_decision_tree_entropy()
