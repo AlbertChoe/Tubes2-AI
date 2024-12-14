@@ -5,6 +5,10 @@ from typing import Dict, Any
 class NaiveBayes:
     def fit(self, X_train: pd.DataFrame, y_train: pd.Series) -> None:
         """Fit the model to the training data using Gaussian Naive Bayes."""
+        if isinstance(X_train, np.ndarray):
+            X_train = pd.DataFrame(X_train)
+        if isinstance(y_train, np.ndarray):
+            y_train = pd.Series(y_train)
         self.X_train = X_train
         self.y_train = y_train
         self.class_probs = self._calculate_class_probabilities(y_train)
@@ -12,6 +16,8 @@ class NaiveBayes:
     
     def predict(self, X_test: pd.DataFrame) -> list:
         """Predict the class labels for the test data using Gaussian Naive Bayes."""
+        if isinstance(X_test, np.ndarray):
+            X_test = pd.DataFrame(X_test)
         return [self._predict(x) for _, x in X_test.iterrows()]
     
     def _predict(self, x: pd.Series) -> Any:

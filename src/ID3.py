@@ -31,10 +31,10 @@ class ID3:
         X = X.to_numpy() if hasattr(X, "to_numpy") else X
         y = y.to_numpy() if hasattr(y, "to_numpy") else y
 
-        if isinstance(value, (int, float)):  # Continuous feature
+        if isinstance(value, (int, float)):
             true_indices = np.where(X[:, feature] <= value)[0]
             false_indices = np.where(X[:, feature] > value)[0]
-        else:  # Categorical feature
+        else:
             true_indices = np.where(X[:, feature] == value)[0]
             false_indices = np.where(X[:, feature] != value)[0]
 
@@ -49,7 +49,6 @@ class ID3:
         X = X.to_numpy() if hasattr(X, "to_numpy") else X
         y = y.to_numpy() if hasattr(y, "to_numpy") else y
 
-        # If all labels are the same, return a leaf node
         if len(set(y)) == 1:
             return Node(results=y[0])
 
@@ -60,7 +59,6 @@ class ID3:
 
         current_entropy = self._entropy(y)
 
-        # Iterate over all features and their unique values to find the best split
         for feature in range(n_features):
             feature_values = set(X[:, feature]) if not isinstance(X[0, feature], (int, float)) else set(np.unique(X[:, feature]))
             for value in feature_values:
