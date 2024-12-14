@@ -1,102 +1,132 @@
 import numpy as np
-from collections import Counter
+from sklearn.preprocessing import LabelEncoder
 
-class Node:
-    def __init__(self, feature=None, value=None, results=None, true_branch=None, false_branch=None):
-        self.feature = feature
-        self.value = value
-        self.results = results
-        self.true_branch = true_branch
-        self.false_branch = false_branch
+class DecisionNode:
+    def __init__(self, feature=None, threshold=None, left=None, right=None, *, value=None):
+        self.feature = feature          
+        self.threshold = threshold      
+        self.left = left                
+        self.right = right              
+        self.value = value              
 
-class ID3:
-    def __init__(self):
-        self.root = None
+class DecisionTreeID3:
+    def __init__(self, max_depth=None, min_samples_split=10, min_information_gain=1e-5):
+        self.max_depth = max_depth
+        self.min_samples_split = min_samples_split
+        self.min_information_gain = min_information_gain
+        self.tree = None
+        self.label_encoder = LabelEncoder()
+
+    def fit(self, X_train, y_train):
+
+        self.features = np.array(X_train.columns)
+        X = X_train.values
+        y = self.label_encoder.fit_transform(y_train)
+        self.tree = self._build_tree(X, y)
 
     def _entropy(self, y):
-        """
-        Calculate entropy for the given labels.
-        If y contains categorical values (e.g., strings), use Counter to handle it.
-        """
-        if isinstance(y[0], (int, float)):
-            counts = np.bincount(y)
-        else:
-            counts = Counter(y)
-        
-        probabilities = [count / len(y) for count in counts.values()]
-        return -np.sum([p * np.log2(p) for p in probabilities if p > 0])
-
-    def _split_data(self, X, y, feature, value):
-        X = X.to_numpy() if hasattr(X, "to_numpy") else X
-        y = y.to_numpy() if hasattr(y, "to_numpy") else y
-        if isinstance(value, (int, float)):
-            true_indices = np.where(X[:, feature] <= value)[0]
-            false_indices = np.where(X[:, feature] > value)[0]
-        else:
-            true_indices = np.where(X[:, feature] == value)[0]
-            false_indices = np.where(X[:, feature] != value)[0]
-
-        true_X, true_y = X[true_indices], y[true_indices]
-        false_X, false_y = X[false_indices], y[false_indices]
-        return true_X, true_y, false_X, false_y
+        counts = np.bincount(y)
+        probabilities = counts / counts.sum()
+        return -np.sum(probabilities * np.log2(probabilities + 1e-9))
 
     def _best_split(self, X, y):
-        best_gain = 0
-        best_criteria = None
-        best_sets = None
-        n_features = X.shape[1]
-        current_entropy = self._entropy(y)
+        best_feature = None
+        best_threshold = None
+        best_info_gain = -1
+        parent_entropy = self._entropy(y)
+        n_samples, n_features = X.shape
 
-        for feature in range(n_features):
-            feature_values = set(X[:, feature]) if not isinstance(X[0, feature], (int, float)) else np.unique(X[:, feature])
+        classes = np.unique(y)
+        n_classes = len(classes)
 
-            for value in feature_values:
-                true_X, true_y, false_X, false_y = self._split_data(X, y, feature, value)
+        for feature_idx in range(n_features):
+            X_column = X[:, feature_idx]
+            sorted_indices = np.argsort(X_column)
+            X_sorted = X_column[sorted_indices]
+            y_sorted = y[sorted_indices]
 
-                if len(true_X) == 0 or len(false_X) == 0:
-                    continue
+            unique_values, unique_indices = np.unique(X_sorted, return_index=True)
+            unique_values = unique_values[1:] 
+            unique_indices = unique_indices[1:]  
 
-                true_entropy = self._entropy(true_y)
-                false_entropy = self._entropy(false_y)
-                p = len(true_y) / len(y)
-                gain = current_entropy - p * true_entropy - (1 - p) * false_entropy
+            if len(unique_values) == 0:
+                continue
 
-                if gain > best_gain:
-                    best_gain = gain
-                    best_criteria = (feature, value)
-                    best_sets = (true_X, true_y, false_X, false_y)
+            thresholds = (X_sorted[unique_indices - 1] + X_sorted[unique_indices]) / 2
 
-        return best_gain, best_criteria, best_sets
+            num_left = unique_indices
+            num_right = n_samples - num_left
 
-    def _build_tree(self, X, y):
-        X = X.to_numpy() if hasattr(X, "to_numpy") else X
-        y = y.to_numpy() if hasattr(y, "to_numpy") else y
-        if len(set(y)) == 1:
-            return Node(results=y[0])
+            entropies_left = np.zeros(len(thresholds))
+            entropies_right = np.zeros(len(thresholds))
 
-        best_gain, best_criteria, best_sets = self._best_split(X, y)
+            for cls in classes:
+                cls_mask = y_sorted == cls
+                cls_cumsum = np.cumsum(cls_mask).astype(int)
+                cls_total = cls_cumsum[-1]
 
-        if best_gain == 0:
-            majority_class = Counter(y).most_common(1)[0][0]
-            return Node(results=majority_class)
+                cls_left = cls_cumsum[unique_indices - 1]
+                cls_right = cls_total - cls_left
 
-        true_branch = self._build_tree(best_sets[0], best_sets[1])
-        false_branch = self._build_tree(best_sets[2], best_sets[3])
+                probs_left = np.divide(cls_left, num_left, out=np.zeros_like(cls_left, dtype=float), where=num_left != 0)
+                probs_right = np.divide(cls_right, num_right, out=np.zeros_like(cls_right, dtype=float), where=num_right != 0)
 
-        return Node(feature=best_criteria[0], value=best_criteria[1], true_branch=true_branch, false_branch=false_branch)
+                entropies_left -= probs_left * np.log2(probs_left + 1e-9)
+                entropies_right -= probs_right * np.log2(probs_right + 1e-9)
 
-    def fit(self, X, y):
-        self.root = self._build_tree(X, y)
+            weighted_entropy = (num_left / n_samples) * entropies_left + (num_right / n_samples) * entropies_right
+            info_gains = parent_entropy - weighted_entropy
 
-    def predict_sample(self, node, sample):
-        if node.results is not None:
-            return node.results
-        else:
-            branch = node.false_branch
-            if sample[node.feature] <= node.value if isinstance(node.value, (int, float)) else sample[node.feature] == node.value:
-                branch = node.true_branch
-            return self.predict_sample(branch, sample)
+            max_info_gain_idx = np.argmax(info_gains)
+            max_info_gain = info_gains[max_info_gain_idx]
+
+            if max_info_gain > best_info_gain:
+                best_info_gain = max_info_gain
+                best_feature = feature_idx
+                best_threshold = thresholds[max_info_gain_idx]
+
+        return best_feature, best_threshold, best_info_gain
+
+    def _build_tree(self, X, y, depth=0):
+        num_samples, num_features = X.shape
+        num_labels = len(np.unique(y))
+
+        if num_labels == 1:
+            return y[0]
+        if num_samples < self.min_samples_split:
+            return np.bincount(y).argmax()
+        if self.max_depth is not None and depth >= self.max_depth:
+            return np.bincount(y).argmax()
+
+        best_feature, best_threshold, best_info_gain = self._best_split(X, y)
+
+        if best_info_gain < self.min_information_gain or best_feature is None:
+            return np.bincount(y).argmax()
+
+        left_indices = X[:, best_feature] < best_threshold
+        right_indices = X[:, best_feature] >= best_threshold
+
+        if np.sum(left_indices) == 0 or np.sum(right_indices) == 0:
+            return np.bincount(y).argmax()
+
+        left_X, left_y = X[left_indices], y[left_indices]
+        right_X, right_y = X[right_indices], y[right_indices]
+
+        left_subtree = self._build_tree(left_X, left_y, depth + 1)
+        right_subtree = self._build_tree(right_X, right_y, depth + 1)
+
+        return DecisionNode(feature=best_feature, threshold=best_threshold, left=left_subtree, right=right_subtree)
 
     def predict(self, X):
-        X = X.to_numpy() if hasattr(X, "to_numpy") else X
-        return np.array([self.predict_sample(self.root, sample) for sample in X])
+        X = X.values  
+        predictions = np.array([self._predict_sample(instance) for instance in X])
+        return self.label_encoder.inverse_transform(predictions)
+
+    def _predict_sample(self, instance):
+        node = self.tree
+        while isinstance(node, DecisionNode):
+            if instance[node.feature] < node.threshold:
+                node = node.left
+            else:
+                node = node.right
+        return node
