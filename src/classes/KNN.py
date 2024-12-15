@@ -10,10 +10,8 @@ class KNN:
         
         Parameters:
         -----------
-        k : int, optional (default=3)
-            Number of nearest neighbors to consider
-        distance_metric : str, optional (default='euclidean')
-            Distance metric to use for neighbor calculation ('euclidean', 'hamming', 'minkowski')
+            k (int, optional): Number of nearest neighbors to consider (default=3).
+            distance_metric (str, optional): Distance metric to use for neighbor calculation (default='euclidean', 'manhattan', 'minkowski').
         """
         self.k = k
         if distance_metric == "manhattan":
@@ -27,13 +25,11 @@ class KNN:
         
         Parameters:
         -----------
-        X : pd.DataFrame, csr_matrix, or ndarray
-            Input data to convert.
+            X (pd.DataFrame, csr_matrix, or ndarray): Input data to convert.
         
         Returns:
         --------
-        np.ndarray
-            Converted data as an ndarray.
+            np.ndarray: Converted data as an ndarray.
         """
         if isinstance(X, pd.DataFrame):
             return X.values
@@ -46,16 +42,14 @@ class KNN:
         else:
             raise TypeError("Input data must be a DataFrame, csr_matrix, or ndarray.")
     
-    def fit(self, X_train, y_train) -> None:
+    def fit(self, X_train, y_train):
         """
         Store training data after ensuring it's an ndarray.
         
         Parameters:
         -----------
-        X_train : pd.DataFrame, csr_matrix, or ndarray
-            Feature matrix for training
-        y_train : pd.Series, or ndarray
-            Target labels for training
+            X_train (pd.DataFrame, csr_matrix, or ndarray): Feature matrix for training.
+            y_train (pd.Series, or ndarray): Target labels for training.
         """
         self.X_train = self._ensure_ndarray(X_train)
         self.y_train = np.array(y_train)
@@ -66,13 +60,11 @@ class KNN:
         
         Parameters:
         -----------
-        X_test : pd.DataFrame, csr_matrix, or ndarray
-            Feature matrix for testing
+            X_test (pd.DataFrame, csr_matrix, or ndarray): Feature matrix for testing
         
         Returns:
         --------
-        np.ndarray
-            Predicted labels for test points
+            np.ndarray: Predicted labels for test points
         """
         X_test = self._ensure_ndarray(X_test)
         predictions = []

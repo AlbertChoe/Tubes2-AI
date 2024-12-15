@@ -16,7 +16,8 @@ class DecisionNode:
         """
         Initialize a decision tree node.
         
-        Args:
+        Parameters:
+        -----------
             feature (int, optional): Index of the feature used for splitting.
             threshold (float, optional): Threshold value for splitting.
             left (DecisionNode or int, optional): Left child node or leaf value.
@@ -39,7 +40,8 @@ class DecisionTreeID3:
         """
         Initialize the Decision Tree ID3 classifier.
         
-        Args:
+        Parameters:
+        -----------
             max_depth (int, optional): Maximum depth of the tree.
             min_samples_split (int): Minimum number of samples to split an internal node.
             min_information_gain (float): Minimum information gain for a split.
@@ -55,11 +57,13 @@ class DecisionTreeID3:
         """
         Fit the decision tree classifier.
         
-        Args:
+        Parameters:
+        -----------
             X_train (pd.DataFrame): Training feature matrix.
             y_train (pd.Series): Training target vector.
         
         Returns:
+        --------
             DecisionTreeID3: Fitted decision tree.
         """
         self.features = np.array(X_train.columns)
@@ -75,10 +79,12 @@ class DecisionTreeID3:
         """
         Calculate entropy of a target vector.
         
-        Args:
+        Parameters:
+        -----------
             y (np.ndarray): Target vector.
         
         Returns:
+        --------
             float: Entropy value.
         """
         counts = np.bincount(y)
@@ -90,11 +96,13 @@ class DecisionTreeID3:
         """
         Find the best feature and threshold for splitting.
         
-        Args:
+        Parameters:
+        -----------
             X (np.ndarray): Feature matrix.
             y (np.ndarray): Target vector.
         
         Returns:
+        --------
             tuple: Best feature index, best threshold, and best information gain.
         """
         parent_entropy = self._entropy(y)
@@ -134,19 +142,20 @@ class DecisionTreeID3:
         """
         Calculate information gain for potential splits.
         
-        Args:
+        Parameters:
+        -----------
             sorted_labels (np.ndarray): Sorted target labels.
             unique_indices (np.ndarray): Indices of unique values.
             thresholds (np.ndarray): Potential split thresholds.
             parent_entropy (float): Entropy of the parent node.
         
         Returns:
+        --------
             tuple: Index of best split and corresponding information gain.
         """
         n_samples = len(sorted_labels)
         n_classes = len(np.unique(sorted_labels))
         
-        # Prepare arrays for entropy calculation
         entropies_left = np.zeros(len(thresholds))
         entropies_right = np.zeros(len(thresholds))
         
@@ -183,12 +192,14 @@ class DecisionTreeID3:
         """
         Recursively build the decision tree.
         
-        Args:
+        Parameters:
+        -----------
             X (np.ndarray): Feature matrix.
             y (np.ndarray): Target vector.
             depth (int): Current tree depth.
         
         Returns:
+        --------
             Union[DecisionNode, int]: Decision tree node or leaf value.
         """
         num_samples, _ = X.shape
@@ -225,10 +236,12 @@ class DecisionTreeID3:
         """
         Predict target values for input features.
         
-        Args:
+        Parameters:
+        -----------
             X (pd.DataFrame): Input feature matrix.
         
         Returns:
+        --------
             np.ndarray: Predicted target values.
         """
         X_array = X.values
@@ -241,10 +254,12 @@ class DecisionTreeID3:
         """
         Predict the target for a single sample by traversing the tree.
         
-        Args:
+        Parameters:
+        -----------
             instance (np.ndarray): Single feature vector.
         
         Returns:
+        --------
             int: Predicted class.
         """
         node = self.tree

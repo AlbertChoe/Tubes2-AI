@@ -7,9 +7,9 @@ class NaiveBayes:
         """
         Initialize Gaussian Naive Bayes Classifier.
         
-        Args:
-            var_smoothing (float): Portion of the largest variance of all features 
-                                   added to variances for stability.
+        Parameters:
+        -----------
+            var_smoothing (float): Portion of the largest variance of all features added to variances for stability.
         """
         self.var_smoothing = var_smoothing
         self.classes_: np.ndarray = None
@@ -21,11 +21,13 @@ class NaiveBayes:
         """
         Fit Gaussian Naive Bayes according to X, y.
         
-        Args:
+        Parameters:
+        -----------
             X (DataFrame or ndarray): Training vectors
             y (Series or ndarray): Target values
         
         Returns:
+        --------
             self: Fitted estimator
         """
         X = X.values if isinstance(X, pd.DataFrame) else X
@@ -56,10 +58,12 @@ class NaiveBayes:
         """
         Calculate joint log likelihood.
         
-        Args:
+        Parameters:
+        -----------
             X (ndarray): Input samples
         
         Returns:
+        --------
             ndarray: Joint log likelihood
         """
         joint_log_likelihood = []
@@ -78,10 +82,12 @@ class NaiveBayes:
         """
         Perform classification on an array of test vectors X.
         
-        Args:
+        Parameters:
+        -----------
             X (DataFrame or ndarray): Input samples
         
         Returns:
+        --------
             ndarray: Predicted class label for X
         """
         X = X.values if isinstance(X, pd.DataFrame) else X
