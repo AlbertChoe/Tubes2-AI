@@ -16,7 +16,10 @@ class KNN:
             Distance metric to use for neighbor calculation ('euclidean', 'hamming', 'minkowski')
         """
         self.k = k
-        self.distance_metric = distance_metric
+        if distance_metric == "manhattan":
+            self.distance_metric = "cityblock"
+        else:
+            self.distance_metric = distance_metric
     
     def _ensure_ndarray(self, X):
         """
