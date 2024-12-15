@@ -1,7 +1,7 @@
 import pandas as pd
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
-from KNN import KNN, OptimizedKNN
+from KNN import KNN
 from NaiveBayes import NaiveBayes
 from ID3 import ID3
 from ModelLoader import ModelLoader
@@ -23,31 +23,19 @@ def generate_data():
         'Feature4': [10, 20, 30],
     })
     
-    y_test = pd.Series([1, 0, 1])
-    
-    return X_train, y_train, X_test, y_test
+    return X_train, y_train, X_test
 
-X_train, y_train, X_test, y_test = generate_data()
+X_train, y_train, X_test = generate_data()
 
 def test_knn():
     knn = KNN(k=5)
     
     knn.fit(X_train, y_train)
-    ModelLoader.save(knn, 'knn_model.pkl')
-    loaded_knn = ModelLoader.load('knn_model.pkl')
-    
-    predictions = loaded_knn.predict(X_test)
-    print(f"KNN Predictions: {predictions}")
-
-def test_oknn():
-    oknn = OptimizedKNN(k=5)
-    
-    oknn.fit(X_train, y_train)
-    ModelLoader.save(oknn, 'oknn_model.pkl')
-    loaded_oknn = ModelLoader.load('oknn_model.pkl')
+    ModelLoader.save(knn, 'test_knn_model.pkl')
+    loaded_oknn = ModelLoader.load('test_knn_model.pkl')
     
     predictions = loaded_oknn.predict(X_test)
-    print(f"OptimizedKNN Predictions: {predictions}")
+    print(f"KNN Predictions: {predictions}")
 
 def test_sklearn_knn():
     sklearn_knn = KNeighborsClassifier(n_neighbors=5)
@@ -60,8 +48,8 @@ def test_naive_bayes():
     nb = NaiveBayes()
     
     nb.fit(X_train, y_train)
-    ModelLoader.save(nb, 'naive_bayes_model.pkl')
-    loaded_nb = ModelLoader.load('naive_bayes_model.pkl')
+    ModelLoader.save(nb, 'test_naive_bayes_model.pkl')
+    loaded_nb = ModelLoader.load('test_naive_bayes_model.pkl')
     
     predictions = loaded_nb.predict(X_test)
     print(f"Naive Bayes Predictions: {predictions}")
@@ -77,8 +65,8 @@ def test_id3():
     id3 = ID3()
     
     id3.fit(X_train, y_train)
-    ModelLoader.save(id3, 'id3_model.pkl')
-    loaded_id3 = ModelLoader.load('id3_model.pkl')
+    ModelLoader.save(id3, 'test_id3_model.pkl')
+    loaded_id3 = ModelLoader.load('test_id3_model.pkl')
     
     predictions = loaded_id3.predict(X_test)
     print(f"ID3 Predictions: {predictions}")
@@ -102,8 +90,6 @@ if __name__ == '__main__':
     printSeparator()
     print("Testing KNN Model...")
     test_knn()
-    print("\nTesting Optimized KNN Model...")
-    test_oknn()
     print("\nTesting Sklearn KNN Model...")
     test_sklearn_knn()
     
