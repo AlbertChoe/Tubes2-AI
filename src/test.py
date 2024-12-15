@@ -1,10 +1,10 @@
 import pandas as pd
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
-from KNN import KNN
-from NaiveBayes import NaiveBayes
-from ID3 import ID3
-from ModelLoader import ModelLoader
+from lib.KNN import KNN
+from lib.NaiveBayes import NaiveBayes
+from lib.ID3 import ID3
+from lib.ModelLoader import ModelLoader
 
 def generate_data():
     X_train = pd.DataFrame({
