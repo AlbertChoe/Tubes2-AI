@@ -1,66 +1,91 @@
 import numpy as np
 import pandas as pd
-from typing import Dict, Any
+from typing import Union
 
 class NaiveBayes:
-    def fit(self, X_train: Any, y_train: Any) -> None:
-        """Fit the model to the training data using Gaussian Naive Bayes."""
-        if isinstance(X_train, pd.DataFrame):
-            X_train = X_train.to_numpy()
-
-        if isinstance(y_train, pd.Series):
-            y_train = y_train.to_numpy()
-
-        self.X_train = X_train
-        self.y_train = y_train
-        self.class_probs = self._calculate_class_probabilities(y_train)
-        self.feature_params = self._calculate_feature_parameters(X_train, y_train)
-
-    
-    def predict(self, X_test: np.ndarray) -> list:
-        """Predict the class labels for the test data using Gaussian Naive Bayes."""
-        if isinstance(X_test, pd.DataFrame):
-            X_test = X_test.to_numpy()
-        return [self._predict(x) for x in X_test]
-    
-    def _predict(self, x: np.ndarray) -> Any:
-        """Predict the class label for a single test point using Gaussian Naive Bayes."""
-        posteriors: Dict[Any, float] = {}
+    def __init__(self, var_smoothing: float = 1e-9):
+        """
+        Initialize Gaussian Naive Bayes Classifier.
         
-        for c in self.class_probs:
-            prior = np.log(self.class_probs[c])
-            likelihood = 0
-            for i, feature_value in enumerate(x):
-                mean, var = self.feature_params[c].get(i, (0, 1))
-                prob = self._gaussian_probability(feature_value, mean, var)
-                likelihood += np.log(prob) if prob > 0 else -np.inf
-            posteriors[c] = prior + likelihood
-        
-        return max(posteriors, key=posteriors.get)
+        Args:
+            var_smoothing (float): Portion of the largest variance of all features 
+                                   added to variances for stability.
+        """
+        self.var_smoothing = var_smoothing
+        self.classes_: np.ndarray = None
+        self.class_prior_: np.ndarray = None
+        self.theta_: np.ndarray = None
+        self.sigma_: np.ndarray = None
 
-    def _calculate_class_probabilities(self, y_train: np.ndarray) -> Dict[Any, float]:
-        """Calculate the prior probabilities of each class."""
-        total_count = len(y_train)
-        class_counts = pd.Series(y_train).value_counts()
-        return (class_counts / total_count).to_dict()
-    
-    def _calculate_feature_parameters(self, X_train: np.ndarray, y_train: np.ndarray) -> Dict[Any, Dict[int, tuple]]:
-        """Calculate the mean and variance of features for each class."""
-        feature_params: Dict[Any, Dict[int, tuple]] = {}
+    def fit(self, X: Union[pd.DataFrame, np.ndarray], y: Union[pd.Series, np.ndarray]):
+        """
+        Fit Gaussian Naive Bayes according to X, y.
         
-        for c in np.unique(y_train):
-            feature_params[c] = {}
-            subset = X_train[y_train == c]
-            for i in range(X_train.shape[1]):
-                mean = subset[:, i].mean()
-                var = subset[:, i].var()
-                feature_params[c][i] = (mean, var)
+        Args:
+            X (DataFrame or ndarray): Training vectors
+            y (Series or ndarray): Target values
         
-        return feature_params
-    
-    def _gaussian_probability(self, x: float, mean: float, var: float) -> float:
-        """Calculate the Gaussian probability density function for a given value."""
-        if var == 0:
-            return 1.0 if x == mean else 0.0
-        exponent = np.exp(- (x - mean)**2 / (2 * var))
-        return (1 / np.sqrt(2 * np.pi * var)) * exponent
+        Returns:
+            self: Fitted estimator
+        """
+        X = X.values if isinstance(X, pd.DataFrame) else X
+        y = y.values if isinstance(y, pd.Series) else y
+        
+        self.classes_ = np.unique(y)
+        n_classes = len(self.classes_)
+        n_features = X.shape[1]
+
+        self.theta_ = np.zeros((n_classes, n_features))
+        self.sigma_ = np.zeros((n_classes, n_features))
+        self.class_prior_ = np.zeros(n_classes)
+
+        for i, c in enumerate(self.classes_):
+            X_c = X[y == c]
+            self.class_prior_[i] = X_c.shape[0] / X.shape[0]
+         
+            self.theta_[i, :] = X_c.mean(axis=0)
+
+            var = X_c.var(axis=0)
+
+            var_max = np.max(var) if len(var) > 0 else 1.0
+            self.sigma_[i, :] = var + self.var_smoothing * var_max
+
+        return self
+
+    def _joint_log_likelihood(self, X: np.ndarray) -> np.ndarray:
+        """
+        Calculate joint log likelihood.
+        
+        Args:
+            X (ndarray): Input samples
+        
+        Returns:
+            ndarray: Joint log likelihood
+        """
+        joint_log_likelihood = []
+        for i in range(len(self.classes_)):
+            jointi = np.log(self.class_prior_[i])
+
+            n_ij = -0.5 * np.sum(np.log(2. * np.pi * self.sigma_[i, :]))
+            n_ij -= 0.5 * np.sum(((X - self.theta_[i, :]) ** 2) / (self.sigma_[i, :]), axis=1)
+            
+            joint_log_likelihood.append(jointi + n_ij)
+        
+        joint_log_likelihood = np.array(joint_log_likelihood).T
+        return joint_log_likelihood
+
+    def predict(self, X: Union[pd.DataFrame, np.ndarray]) -> np.ndarray:
+        """
+        Perform classification on an array of test vectors X.
+        
+        Args:
+            X (DataFrame or ndarray): Input samples
+        
+        Returns:
+            ndarray: Predicted class label for X
+        """
+        X = X.values if isinstance(X, pd.DataFrame) else X
+
+        jll = self._joint_log_likelihood(X)
+        
+        return self.classes_[np.argmax(jll, axis=1)]
